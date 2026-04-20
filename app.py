@@ -223,30 +223,25 @@ if mode == "Upload Image":
 # =========================
 # WEBCAM MODE (FIXED)
 # =========================
-else:
-    st.markdown("### 🎥 Webcam Detection")
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import av
 
-    picture = st.camera_input("Take a picture")
+class FaceApp(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
 
-    if picture:
-        img = np.array(Image.open(picture))
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        out, _ = process(img)
 
-        out, res = process(img)
+        return av.VideoFrame.from_ndarray(out, format="bgr24")
 
-        col1, col2 = st.columns(2)
 
-        with col1:
-            st.image(img, caption="Captured Image")
+st.markdown("### 🎥 Live Webcam Detection")
 
-        with col2:
-            st.image(cv2.cvtColor(out, cv2.COLOR_BGR2RGB),
-                     caption="Detected Output")
-
-        st.success(f"Faces detected: {len(res)}")
-
-        for i, r in enumerate(res):
-            st.write(f"Face {i+1}: {r}")
+webrtc_streamer(
+    key="live",
+    video_transformer_factory=FaceApp,
+    media_stream_constraints={"video": True, "audio": False},
+)
 
 # =========================
 # FOOTER (RESTORED)
