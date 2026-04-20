@@ -211,12 +211,12 @@ def process_frame(frame, face_net, age_net, gender_net, padding=20):
 #  Helper – check model availability with nice UI
 # ─────────────────────────────────────────────────
 def show_model_missing_error(missing_files):
-    st.error("⚠️ Model files not found! Please download and place them in the `models/` folder.")
+    st.error("Model files not found! Please download and place them in the `models/` folder.")
     st.markdown("**Missing files:**")
     for f in missing_files:
         st.code(f)
     st.markdown("""
-### 📥 Download Model Files
+### Download Model Files
 
 Run these commands in your terminal:
 
@@ -247,15 +247,16 @@ with st.sidebar:
     conf_thresh = st.slider("Face Detection Confidence", 0.3, 0.95, 0.7, 0.05)
     padding     = st.slider("Face Crop Padding (px)", 0, 50, 20, 5)
     st.markdown("---")
-    st.markdown("### ℹ️ About")
+    st.markdown("### About")
     st.markdown("""
-- **Models**: Caffe (Age/Gender) + TF (Face)  
-- **Framework**: OpenCV DNN  
-- **UI**: Streamlit  
-- **Input**: Image Upload / Webcam  
+- **Developers**: Hemakshi Ingale
+                  Prabhanjan Ingle  
+                  Divya Dosi
+- **Special Thanks**: Prof. Yamini Warke  
+- **MMIT College, Pune**  
 """)
     st.markdown("---")
-    st.caption("Deep Learning Mini Project · 2024")
+    st.caption("Deep Learning Mini Project · 2025-26")
 
 
 # ─────────────────────────────────────────────────
@@ -394,6 +395,6 @@ else:
 # ─────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<center><small>MMIT College, Pune· Developer-Hemakshi Ingale Prabhanjan Ingale Divya Dosi · Special Thanks- Prof. Yamini Warke</small></center>",
+    "<center><small>Thank You!!</small></center>",
     unsafe_allow_html=True,
 )
