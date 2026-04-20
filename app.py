@@ -172,14 +172,18 @@ def process(img):
 # SIDEBAR (ABOUT RESTORED)
 # =========================
 with st.sidebar:
-    st.markdown("### 👨‍💻 About Project")
+    st.markdown("### About Developers")
+
     st.markdown("""
+**Developers:**  
 - Hemakshi Ingale  
 - Prabhanjan Ingle  
 - Divya Dosi  
 
-MMIT College Pune  
-Guide: Prof. Yamini Warke
+**Special Thanks:**  
+- Prof. Yamini Warke  
+
+MMIT College, Pune  
 """)
 
 # =========================
@@ -222,25 +226,27 @@ if mode == "Upload Image":
 else:
     st.markdown("### 🎥 Webcam Detection")
 
-    run = st.checkbox("Start Webcam")
-    frame_box = st.empty()
+    picture = st.camera_input("Take a picture")
 
-    if run:
-        cap = cv2.VideoCapture(0)
+    if picture:
+        img = np.array(Image.open(picture))
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-        while run:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        out, res = process(img)
 
-            frame = cv2.flip(frame,1)
-            out,res = process(frame)
+        col1, col2 = st.columns(2)
 
-            frame_box.image(cv2.cvtColor(out,cv2.COLOR_BGR2RGB))
+        with col1:
+            st.image(img, caption="Captured Image")
 
-            run = st.checkbox("Start Webcam", value=True)
+        with col2:
+            st.image(cv2.cvtColor(out, cv2.COLOR_BGR2RGB),
+                     caption="Detected Output")
 
-        cap.release()
+        st.success(f"Faces detected: {len(res)}")
+
+        for i, r in enumerate(res):
+            st.write(f"Face {i+1}: {r}")
 
 # =========================
 # FOOTER (RESTORED)
