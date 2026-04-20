@@ -1,14 +1,46 @@
 
 import os
+import urllib.request
 
 MODEL_DIR = "models"
+os.makedirs(MODEL_DIR, exist_ok=True)
 
-if not os.path.exists(MODEL_DIR):
-    os.makedirs(MODEL_DIR)
+def download_file(url, path):
+    if not os.path.exists(path):
+        urllib.request.urlretrieve(url, path)
 
-# auto-download if missing
-if not os.path.exists("models/gender_net.caffemodel"):
-    os.system("python download_models.py")
+# Face Detection
+download_file(
+    "https://raw.githubusercontent.com/spmallick/learnopencv/master/AgeGender/opencv_face_detector.pbtxt",
+    "models/opencv_face_detector.pbtxt"
+)
+
+download_file(
+    "https://github.com/spmallick/learnopencv/raw/master/AgeGender/opencv_face_detector_uint8.pb",
+    "models/opencv_face_detector_uint8.pb"
+)
+
+# Age Model
+download_file(
+    "https://github.com/GilLevi/AgeGenderDeepLearning/raw/master/models/age_net.caffemodel",
+    "models/age_net.caffemodel"
+)
+
+download_file(
+    "https://raw.githubusercontent.com/GilLevi/AgeGenderDeepLearning/master/age_gender_models/age_deploy.prototxt",
+    "models/age_deploy.prototxt"
+)
+
+# Gender Model
+download_file(
+    "https://github.com/GilLevi/AgeGenderDeepLearning/raw/master/models/gender_net.caffemodel",
+    "models/gender_net.caffemodel"
+)
+
+download_file(
+    "https://raw.githubusercontent.com/GilLevi/AgeGenderDeepLearning/master/age_gender_models/gender_deploy.prototxt",
+    "models/gender_deploy.prototxt"
+)
     
 import cv2
 import numpy as np
