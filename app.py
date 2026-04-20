@@ -5,29 +5,19 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
-# ===============================
-# CONFIG
-# ===============================
+# =========================
+# MODEL SETUP
+# =========================
 MODEL_DIR = "models"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-# ===============================
-# SAFE DOWNLOAD FUNCTION
-# ===============================
 def download_file(url, path):
     if not os.path.exists(path):
-        try:
-            r = requests.get(url, timeout=30)
-            r.raise_for_status()
-            with open(path, "wb") as f:
-                f.write(r.content)
-        except Exception:
-            st.error(f"❌ Failed downloading: {path}")
-            st.stop()
+        r = requests.get(url, timeout=30)
+        r.raise_for_status()
+        with open(path, "wb") as f:
+            f.write(r.content)
 
-# ===============================
-# DOWNLOAD ALL MODELS ONCE
-# ===============================
 MODEL_FILES = {
     "models/opencv_face_detector.pbtxt":
         "https://raw.githubusercontent.com/spmallick/learnopencv/master/AgeGender/opencv_face_detector.pbtxt",
@@ -48,147 +38,212 @@ MODEL_FILES = {
         "https://raw.githubusercontent.com/spmallick/learnopencv/master/AgeGender/gender_deploy.prototxt",
 }
 
-for path, url in MODEL_FILES.items():
-    download_file(url, path)
+for p, u in MODEL_FILES.items():
+    download_file(u, p)
 
-# ===============================
-# VERIFY MODELS (CRITICAL FIX)
-# ===============================
-for file in MODEL_FILES.keys():
-    if not os.path.exists(file):
-        st.error(f"❌ Missing file: {file}")
+# =========================
+# CHECK FILES
+# =========================
+for f in MODEL_FILES.keys():
+    if not os.path.exists(f):
+        st.error(f"Missing: {f}")
         st.stop()
 
-# ===============================
-# STREAMLIT UI
-# ===============================
-st.set_page_config(page_title="Age & Gender Detection", layout="wide")
+# =========================
+# STREAMLIT CONFIG
+# =========================
+st.set_page_config(
+    page_title="Age & Gender Detection",
+    page_icon="🧠",
+    layout="wide"
+)
 
-st.title("🧠 Age & Gender Detection")
+# =========================
+# UI DESIGN (YOUR ORIGINAL STYLE)
+# =========================
+st.markdown("""
+<style>
+.main-title {
+    font-size: 2.6rem;
+    font-weight: 700;
+    text-align: center;
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.sub-title {
+    text-align: center;
+    color: gray;
+    margin-bottom: 20px;
+}
+.result-card {
+    padding: 10px;
+    background: #fff;
+    border-left: 4px solid #764ba2;
+    margin: 5px 0;
+    border-radius: 8px;
+}
+</style>
+""", unsafe_allow_html=True)
 
-st.markdown("Deep Learning · OpenCV · Streamlit")
+st.markdown('<div class="main-title">Age & Gender Detection</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Deep Learning · OpenCV DNN · Streamlit</div>', unsafe_allow_html=True)
 
-# ===============================
+# =========================
 # MODEL PATHS
-# ===============================
-FACE_PROTO   = "models/opencv_face_detector.pbtxt"
-FACE_MODEL   = "models/opencv_face_detector_uint8.pb"
-AGE_PROTO    = "models/age_deploy.prototxt"
-AGE_MODEL    = "models/age_net.caffemodel"
+# =========================
+FACE_PROTO = "models/opencv_face_detector.pbtxt"
+FACE_MODEL = "models/opencv_face_detector_uint8.pb"
+AGE_PROTO = "models/age_deploy.prototxt"
+AGE_MODEL = "models/age_net.caffemodel"
 GENDER_PROTO = "models/gender_deploy.prototxt"
 GENDER_MODEL = "models/gender_net.caffemodel"
 
-AGE_BUCKETS = ['(0-2)', '(4-6)', '(8-12)', '(15-20)',
-               '(25-32)', '(38-43)', '(48-53)', '(60-100)']
+AGE_BUCKETS = ['(0-2)','(4-6)','(8-12)','(15-20)',
+               '(25-32)','(38-43)','(48-53)','(60-100)']
 
-GENDER_LIST = ['Male', 'Female']
+GENDER = ["Male", "Female"]
 
-# ===============================
-# LOAD MODELS (SAFE)
-# ===============================
+# =========================
+# LOAD MODELS
+# =========================
 @st.cache_resource
 def load_models():
-    try:
-        face = cv2.dnn.readNet(FACE_MODEL, FACE_PROTO)
-        age = cv2.dnn.readNet(AGE_MODEL, AGE_PROTO)
-        gender = cv2.dnn.readNet(GENDER_MODEL, GENDER_PROTO)
-        return face, age, gender
-    except Exception as e:
-        st.error("❌ OpenCV model loading failed")
-        st.exception(e)
-        st.stop()
+    face = cv2.dnn.readNet(FACE_MODEL, FACE_PROTO)
+    age = cv2.dnn.readNet(AGE_MODEL, AGE_PROTO)
+    gender = cv2.dnn.readNet(GENDER_MODEL, GENDER_PROTO)
+    return face, age, gender
 
 face_net, age_net, gender_net = load_models()
 
-# ===============================
-# FACE DETECTION
-# ===============================
-def detect_faces(frame):
-    h, w = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300),
-                                 [104, 117, 123], False)
+# =========================
+# FUNCTIONS
+# =========================
+def detect_faces(img):
+    h, w = img.shape[:2]
+    blob = cv2.dnn.blobFromImage(img, 1.0, (300,300), [104,117,123], False)
     face_net.setInput(blob)
-    detections = face_net.forward()
+    det = face_net.forward()
 
     boxes = []
-    for i in range(detections.shape[2]):
-        conf = detections[0, 0, i, 2]
-        if conf > 0.7:
-            x1 = int(detections[0, 0, i, 3] * w)
-            y1 = int(detections[0, 0, i, 4] * h)
-            x2 = int(detections[0, 0, i, 5] * w)
-            y2 = int(detections[0, 0, i, 6] * h)
-            boxes.append((x1, y1, x2, y2))
+    for i in range(det.shape[2]):
+        if det[0,0,i,2] > 0.7:
+            x1 = int(det[0,0,i,3]*w)
+            y1 = int(det[0,0,i,4]*h)
+            x2 = int(det[0,0,i,5]*w)
+            y2 = int(det[0,0,i,6]*h)
+            boxes.append((x1,y1,x2,y2))
     return boxes
 
-# ===============================
-# PREDICTION
-# ===============================
+
 def predict(face):
-    blob = cv2.dnn.blobFromImage(face, 1.0, (227, 227),
-                                 (78.4, 87.7, 114.8), swapRB=False)
+    blob = cv2.dnn.blobFromImage(face,1,(227,227),(78.4,87.7,114.8),False)
 
     gender_net.setInput(blob)
-    gender = GENDER_LIST[gender_net.forward()[0].argmax()]
+    gender = GENDER[gender_net.forward()[0].argmax()]
 
     age_net.setInput(blob)
     age = AGE_BUCKETS[age_net.forward()[0].argmax()]
 
     return gender, age
 
-# ===============================
-# PROCESS IMAGE
-# ===============================
-def process(img):
-    output = img.copy()
-    boxes = detect_faces(img)
 
+def process(img):
+    out = img.copy()
+    boxes = detect_faces(img)
     results = []
 
-    for (x1, y1, x2, y2) in boxes:
-        face = img[y1:y2, x1:x2]
+    for (x1,y1,x2,y2) in boxes:
+        face = img[y1:y2,x1:x2]
         if face.size == 0:
             continue
 
-        gender, age = predict(face)
+        g,a = predict(face)
 
-        cv2.rectangle(output, (x1, y1), (x2, y2), (255, 0, 255), 2)
-        cv2.putText(output, f"{gender}, {age}",
-                    (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6, (255, 255, 255), 2)
+        cv2.rectangle(out,(x1,y1),(x2,y2),(255,0,255),2)
+        cv2.putText(out,f"{g},{a}",(x1,y1-10),
+                    cv2.FONT_HERSHEY_SIMPLEX,0.6,(255,255,255),2)
 
-        results.append((gender, age))
+        results.append((g,a))
 
-    return output, results
+    return out, results
 
-# ===============================
-# UI
-# ===============================
-file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
+# =========================
+# SIDEBAR (ABOUT RESTORED)
+# =========================
+with st.sidebar:
+    st.markdown("### 👨‍💻 About Project")
+    st.markdown("""
+- Hemakshi Ingale  
+- Prabhanjan Ingle  
+- Divya Dosi  
 
-if file:
-    img = np.array(Image.open(file))
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+MMIT College Pune  
+Guide: Prof. Yamini Warke
+""")
 
-    result, res = process(img)
+# =========================
+# MODE SELECT
+# =========================
+mode = st.radio("Select Mode", ["Upload Image", "Webcam"])
 
-    col1, col2 = st.columns(2)
+# =========================
+# IMAGE MODE
+# =========================
+if mode == "Upload Image":
+    file = st.file_uploader("Upload Image", type=["jpg","png","jpeg"])
 
-    with col1:
-        st.image(file, caption="Original")
+    if file:
+        img = np.array(Image.open(file))
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-    with col2:
-        st.image(cv2.cvtColor(result, cv2.COLOR_BGR2RGB),
-                 caption="Detected")
+        out,res = process(img)
 
-    st.success(f"Faces detected: {len(res)}")
+        c1,c2 = st.columns(2)
 
-    for i, r in enumerate(res):
-        st.write(f"Face {i+1}: {r}")
+        with c1:
+            st.image(file)
 
-# ===============================
-# FOOTER (YOUR STYLE BACK)
-# ===============================
+        with c2:
+            st.image(cv2.cvtColor(out,cv2.COLOR_BGR2RGB))
+
+        st.success(f"Faces: {len(res)}")
+
+        for i,r in enumerate(res):
+            st.markdown(f"""
+            <div class="result-card">
+            Face {i+1}: {r}
+            </div>
+            """, unsafe_allow_html=True)
+
+# =========================
+# WEBCAM MODE (FIXED)
+# =========================
+else:
+    st.markdown("### 🎥 Webcam Detection")
+
+    run = st.checkbox("Start Webcam")
+    frame_box = st.empty()
+
+    if run:
+        cap = cv2.VideoCapture(0)
+
+        while run:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame = cv2.flip(frame,1)
+            out,res = process(frame)
+
+            frame_box.image(cv2.cvtColor(out,cv2.COLOR_BGR2RGB))
+
+            run = st.checkbox("Start Webcam", value=True)
+
+        cap.release()
+
+# =========================
+# FOOTER (RESTORED)
+# =========================
 st.markdown("---")
 st.markdown("<center>Thank You !!</center>", unsafe_allow_html=True)
