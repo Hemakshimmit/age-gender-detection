@@ -27,7 +27,7 @@ download_file(
 )
 
 download_file(
-    "https://raw.githubusercontent.com/GilLevi/AgeGenderDeepLearning/master/age_gender_models/age_deploy.prototxt",
+    "https://github.com/spmallick/learnopencv/raw/master/AgeGender/age_deploy.prototxt",
     "models/age_deploy.prototxt"
 )
 
@@ -38,7 +38,7 @@ download_file(
 )
 
 download_file(
-    "https://raw.githubusercontent.com/GilLevi/AgeGenderDeepLearning/master/age_gender_models/gender_deploy.prototxt",
+    "https://github.com/spmallick/learnopencv/raw/master/AgeGender/gender_deploy.prototxt",
     "models/gender_deploy.prototxt"
 )
     
